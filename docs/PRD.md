@@ -149,18 +149,13 @@ marcadas como **derivada**, com a derivação explicitada.
   descartada: nada no sistema classifica a causa da falha do lado do cliente, então não havia
   instrumento que produzisse o número.)
 - **Meta:** entregar sem intervenção humana todo evento cujo destino volte ao ar dentro da janela de
-  retentativas efetivamente coberta pelo desenho. **Número em aberto, não use ~15h:** a reunião
-  registrou "quase 15 horas" como soma dos intervalos (`[09:17] Diego:`, aceito em
-  `[09:17] Marcos:`), mas com o teto de **5 tentativas** (`[09:15] Diego:`, fechado em
-  `[09:17] Larissa:`) apenas quatro esperas são consumidas — 1m+5m+30m+2h = **2h36min** — e o
-  intervalo de 12h fica inalcançável. Enquanto a divergência não for resolvida (registrada em
-  [FDD §8.2](./FDD.md), pendente de emenda ao
-  [ADR-003](./adrs/ADR-003-retry-com-backoff-e-dlq.md)), a janela que este PRD assume é de
-  **2h36min**, que cobre o caso real de **2 horas de indisponibilidade em manutenção planejada**
-  (`[09:16] Diego:`) com margem de apenas 36 minutos. **Ação de produto:** decidir com Diego e
-  Larissa se o compromisso é 5 tentativas (janela 2h36) ou 6 tentativas (janela ~14h36); a escolha
-  muda esta meta e o risco R-2. A pendência é rastreada em [RFC §6](./RFC.md), com responsáveis e
-  gatilho — nada no pacote escolhe por conta própria, porque a transcrição afirma as duas coisas.
+  retentativas coberta pelo desenho, que é de **~14h36min** — as "quase 15 horas entre primeira falha
+  e última tentativa" registradas na reunião (`[09:17] Diego:`, aceito em `[09:17] Marcos:`). Com o
+  teto de **5 tentativas** (`[09:15] Diego:`, fechado em `[09:17] Larissa:`), cada um dos cinco
+  intervalos precede uma retentativa, contados a partir da falha da entrega inicial: 1m, 5m, 30m, 2h
+  e 12h. A janela cobre com folga o caso real de **2 horas de indisponibilidade em manutenção
+  planejada** (`[09:16] Diego:`) e fica dentro da faixa de "até 12 ou 24 horas" que a reunião
+  buscava (`[09:15] Diego:`).
 - **Como se mede:** duas contagens no mesmo período, extraídas do histórico de entregas e do acervo
   de eventos que esgotaram tentativas: (a) eventos entregues em alguma retentativa, sem ação humana;
   (b) eventos que esgotaram as tentativas e exigiram reprocessamento manual. **Limiar de aprovação:**
@@ -254,7 +249,7 @@ tamanho do evento (`[09:24] Larissa:`).
 | **PRD-RNF-02** | Atraso máximo aceitável entre a mudança de status e o início da primeira tentativa de entrega | **2 segundos** — é a maior parcela fixa do atraso e cabe dentro do alvo de 10s. O mecanismo que produz esse atraso é decisão de engenharia ([ADR-002](./adrs/ADR-002-worker-separado-com-polling.md)) | `[09:09] Diego:`, aceito em `[09:10] Marcos:` e `[09:10] Larissa:` |
 | **PRD-RNF-03** | Tempo máximo de espera pela resposta do cliente | **10 segundos**; sem resposta nesse prazo, a tentativa é considerada falha e entra em retentativa | `[09:42] Diego:` |
 | **PRD-RNF-04** | Número máximo de tentativas de entrega por evento | **5** | `[09:15] Diego:`, fechado em `[09:16] Larissa:` / `[09:17] Larissa:` |
-| **PRD-RNF-05** | Espaçamento entre tentativas | **1 minuto, 5 minutos, 30 minutos, 2 horas e 12 horas**. **Divergência conhecida:** com o teto de 5 tentativas (PRD-RNF-04) somente os quatro primeiros intervalos são consumidos — **2h36min** entre a primeira falha e a última tentativa —, e o intervalo de 12h fica inalcançável. A reunião registrou "quase 15 horas" (`[09:17] Diego:`) sem conciliar com o teto; a conciliação está pendente e rastreada em [RFC §6](./RFC.md) (aritmética em [FDD §8.2](./FDD.md), emenda ao [ADR-003](./adrs/ADR-003-retry-com-backoff-e-dlq.md)) | `[09:17] Diego:`, aceito em `[09:17] Marcos:` |
+| **PRD-RNF-05** | Espaçamento entre tentativas | **1 minuto, 5 minutos, 30 minutos, 2 horas e 12 horas**, contados a partir da falha da entrega inicial: cada um dos cinco intervalos precede uma das 5 tentativas (PRD-RNF-04). Da primeira falha até a última tentativa decorrem **~14h36min** — as "quase 15 horas" registradas na reunião (`[09:17] Diego:`) | `[09:17] Diego:`, aceito em `[09:17] Marcos:` |
 | **PRD-RNF-06** | Janela de convivência do segredo anterior após rotação | **24 horas** | `[09:21] Sofia:` |
 | **PRD-RNF-07** | Tamanho máximo do conteúdo de um evento | **64 KB**; acima disso é **erro, não truncamento** — "Se chegou nesse tamanho, tem algo errado" | `[09:23] Sofia:`, `[09:24] Diego:`, `[09:24] Larissa:` |
 | **PRD-RNF-08** | Transporte obrigatoriamente cifrado | O endereço de recebimento **precisa usar transporte cifrado**; endereço em texto claro é recusado no cadastro com erro de validação | `[09:23] Sofia:` |
@@ -274,7 +269,7 @@ uma mora no ADR correspondente e não é reproduzido aqui.
 | --- | --- | --- |
 | O evento é registrado junto com a mudança de status, tudo ou nada | Se o registro do evento falhar, a **mudança de status falha junto** e o operador interno vê a operação de pedido ser recusada | [ADR-001](./adrs/ADR-001-outbox-no-mysql.md) |
 | A entrega é assíncrona, despachada fora da transação de mudança de status | Até **2 segundos** de atraso fixo antes da primeira tentativa; **nenhuma garantia de ordem** entre pedidos diferentes e, **sempre que uma entrega falha e entra em retentativa, também não há garantia de ordem entre os eventos de um mesmo pedido** — o cliente pode receber um status posterior antes de um anterior e precisa se orientar pelos status de origem e destino que o próprio evento carrega. Isso precisa estar na documentação de integração (9.1) | [ADR-002](./adrs/ADR-002-worker-separado-com-polling.md) |
-| Cinco tentativas espaçadas e, esgotadas, o evento fica preservado para reprocessamento manual | Um evento pode levar **2h36min** — número sujeito à conciliação pendente do ADR-003 — para ser declarado perdido, e a recuperação **depende de alguém olhar**: não há aviso automático | [ADR-003](./adrs/ADR-003-retry-com-backoff-e-dlq.md) |
+| Cinco tentativas espaçadas e, esgotadas, o evento fica preservado para reprocessamento manual | Um evento pode levar **~15 horas** para ser declarado perdido, e a recuperação **depende de alguém olhar**: não há aviso automático | [ADR-003](./adrs/ADR-003-retry-com-backoff-e-dlq.md) |
 | Cada configuração tem segredo próprio, rotacionável, com 24h de convivência | O cliente **precisa implementar a verificação da assinatura** e, durante 24 horas após rotacionar, conviver com **dois segredos válidos** | [ADR-004](./adrs/ADR-004-hmac-sha256-secret-por-endpoint.md) |
 | A entrega é *at-least-once* | O cliente **pode receber o mesmo evento mais de uma vez e precisa deduplicar** pelo identificador do evento; a responsabilidade é dele (`[09:25] Sofia:`) | [ADR-005](./adrs/ADR-005-at-least-once-com-x-event-id.md) |
 | A feature reusa os padrões já vigentes na nossa API | Nada novo para o cliente aprender: formato de erro, autenticação e paginação são os mesmos do resto da API que ele já consome | [ADR-006](./adrs/ADR-006-reuso-dos-padroes-do-projeto.md) |
@@ -338,14 +333,12 @@ Cada risco ancorado em fato declarado na reunião. Risco sem âncora não entra.
   o caso de 2 horas já ocorreu.
 - **Impacto: médio** — o cliente não é notificado enquanto está fora; se a notificação for descartada
   cedo demais, ele nunca fica sabendo da mudança.
-- **Mitigação:** **5 tentativas** espaçadas (PRD-RNF-04, PRD-RNF-05), cobrindo uma janela efetiva de
-  **2h36min** a partir da primeira falha — margem de apenas 36 minutos sobre o caso ancorado de 2
-  horas de manutenção planejada. Foi exatamente esse cenário que derrubou a proposta de 3 tentativas
-  (`[09:16] Bruno:` → `[09:16] Diego:`). **Ponto de atenção:** a reunião acreditava estar comprando
-  ~15 horas de janela (`[09:17] Marcos:` — "Se um cliente meu cair por 15 horas..."); a conciliação
-  entre o teto de tentativas e a progressão de intervalos está pendente e rastreada em
-  [RFC §6](./RFC.md) (aritmética em [FDD §8.2](./FDD.md)) e, até ela sair, este risco é maior do que
-  a reunião supôs. Esgotadas as tentativas, o evento é preservado
+- **Mitigação:** **5 tentativas** espaçadas (PRD-RNF-04, PRD-RNF-05), cobrindo uma janela de
+  **~14h36min** a partir da primeira falha — folga larga sobre o caso ancorado de 2 horas de
+  manutenção planejada. Foi exatamente esse cenário que derrubou a proposta de 3 tentativas
+  (`[09:16] Bruno:` → `[09:16] Diego:`). O tamanho da janela foi aceito pelo produto pelo que
+  significa na prática: "Se um cliente meu cair por 15 horas, ele já tá com problema sério dele"
+  (`[09:17] Marcos:`). Esgotadas as tentativas, o evento é preservado
   (PRD-RF-11) e pode ser reprocessado manualmente (PRD-RF-12).
 
 ### R-3 — Perder a Atlas Comercial por atraso na entrega

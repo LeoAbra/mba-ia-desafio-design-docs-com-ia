@@ -84,11 +84,10 @@ Esta lista existe para que ninguém implemente por conta própria:
 
 ### 3.3 Pontos herdados como **(em aberto)**
 
-Três pontos chegam ao FDD sem decisão fechada; os dois primeiros **bloqueiam** trechos específicos da implementação:
+Dois pontos chegam ao FDD sem decisão fechada, e ambos **bloqueiam** trechos específicos da implementação:
 
 1. **Qual segredo assina durante o grace period de 24h** — o novo, o antigo, ou ambos em headers distintos ([ADR-004](./adrs/ADR-004-hmac-sha256-secret-por-endpoint.md), seção Decisão). O modelo de dados da seção 4.1 (`secret` + `previousSecret` + `previousSecretExpiresAt`) suporta as três opções; o passo 5 do fluxo B não pode ser codificado antes da ratificação. Encaminhar para a revisão de segurança de `[09:46] Sofia:`.
 2. **Tamanho e codificação do segredo gerado** — mesma revisão. A coluna está dimensionada em `VARCHAR(255)` **(proposta do FDD)**, folgada para qualquer escolha.
-3. **Divergência aritmética do ADR-003** — a progressão de cinco intervalos não é consumível por cinco chamadas HTTP. Não bloqueia a implementação (segue-se o ADR), mas exige emenda ao ADR-003 para fechar o número de horas prometido. Ver 8.2.
 
 ---
 
@@ -254,7 +253,7 @@ Os quatro dados que `[09:34] Marcos:` exigiu mapeiam um a um: **sucesso/falha** 
 
 `eventId` **não** é FK para `webhook_outbox`: a linha da outbox é removida quando o evento vai para a DLQ (seção 6.4), e o histórico precisa sobreviver a isso. É referência solta, e está dito de propósito.
 
-`responseBody` é `TEXT` e é truncado na gravação — o corpo vem de sistema de terceiro e não tem tamanho controlado por nós. O limite é `WEBHOOK_RESPONSE_BODY_MAX_CHARS` **(proposta do FDD)**, default **2048 caracteres**, no mesmo estilo das demais variáveis da seção 11.1; a reunião não fixou valor. O truncamento é por caracteres e acrescenta o sufixo `…[truncated]`, para que quem lê o histórico saiba que o corpo não é o completo. Um corpo maior que isso não tem valor de diagnóstico e só infla a tabela que o [ADR-007](./adrs/ADR-007-snapshot-do-payload-na-insercao.md) já registra como duplicadora de dado (risco R-8).
+`responseBody` é `TEXT` e é truncado na gravação — o corpo vem de sistema de terceiro e não tem tamanho controlado por nós. O limite é `WEBHOOK_RESPONSE_BODY_MAX_CHARS` **(proposta do FDD)**, default **2048 caracteres**, no mesmo estilo das demais variáveis da seção 11.1; a reunião não fixou valor. O truncamento é por caracteres e acrescenta o sufixo `…[truncated]`, para que quem lê o histórico saiba que o corpo não é o completo. Um corpo maior que isso não tem valor de diagnóstico e só infla a tabela que o [ADR-007](./adrs/ADR-007-snapshot-do-payload-na-insercao.md) já registra como duplicadora de dado (risco R-7).
 
 **Índices e justificativa**
 
@@ -1163,15 +1162,16 @@ Reduzir `WEBHOOK_HTTP_TIMEOUT_MS` não resolve — empurraria destinos legitimam
 
 Progressão fechada em `[09:17] Diego:` e reafirmada em `[09:48] Larissa:`: **1 minuto, 5 minutos, 30 minutos, 2 horas, 12 horas**.
 
-| Chamada HTTP | Acontece em (contado a partir da falha da 1ª) | Após a falha, espera |
+| Chamada HTTP | Acontece em (contado a partir da falha da entrega inicial) | Após a falha, espera |
 | --- | --- | --- |
-| 1 — envio inicial | até 2s depois do commit de `changeStatus` | 1 min |
-| 2 — tentativa 2 | +1 min | 5 min |
-| 3 — tentativa 3 | +6 min | 30 min |
-| 4 — tentativa 4 | +36 min | 2 h |
-| 5 — tentativa 5 | +2 h 36 min | — falha definitiva, vai para a DLQ |
+| envio inicial | até 2s depois do commit de `changeStatus` | 1 min |
+| tentativa 1 | +1 min | 5 min |
+| tentativa 2 | +6 min | 30 min |
+| tentativa 3 | +36 min | 2 h |
+| tentativa 4 | +2 h 36 min | 12 h |
+| tentativa 5 | +14 h 36 min | — falha definitiva, vai para a DLQ |
 
-> **Nota de leitura dos números.** São **5 tentativas de entrega no total**, conforme a Decisão do [ADR-003](./adrs/ADR-003-retry-com-backoff-e-dlq.md) ("no máximo 5 tentativas de entrega por evento"), premissa fechada da seção 1. Cinco chamadas consomem quatro esperas (1m+5m+30m+2h = 2h36min), e o quinto intervalo de 12h da progressão fica sem uso. **Isso não fecha com as "quase 15 horas" de `[09:17] Diego:`.** A discrepância é real e está no ADR, não neste documento: reconciliar exige **emenda ao ADR-003**, não uma releitura no FDD. Até a emenda, a implementação segue o ADR como está — 5 chamadas, `BACKOFF_INTERVALS_MS` com os cinco intervalos e o último inalcançável. **A pendência é rastreada em [RFC §6](./RFC.md)**, com responsáveis e gatilho; não codar a decisão antes que ela saia de lá.
+> **Nota de leitura dos números.** São **5 tentativas de entrega**, conforme a Decisão do [ADR-003](./adrs/ADR-003-retry-com-backoff-e-dlq.md) ("no máximo 5 tentativas de entrega por evento"), premissa fechada da seção 1. A contagem que `[09:17] Diego:` usa é explícita — "entre primeira falha e última tentativa" —, e a primeira falha é a da **entrega inicial**, em `t = 0`. Os cinco intervalos vêm depois dela, cada um antes de uma tentativa: mapeamento 1:1, nenhum intervalo sem uso. A última tentativa cai em **+14 h 36 min**, que são as "quase 15 horas" anunciadas por Diego e a mesma faixa de "até 12 ou 24 horas" de `[09:15] Diego:`. É por isso que `BACKOFF_INTERVALS_MS` tem os cinco intervalos e todos são percorridos.
 
 **Implementação:** constante `BACKOFF_INTERVALS_MS = [60_000, 300_000, 1_800_000, 7_200_000, 43_200_000]` em `src/modules/webhooks/webhook.backoff.ts` **(a criar)**. O índice é `attemptNumber - 1`, com `attemptNumber` = número da chamada HTTP que falhou, contado a partir de 1 — o mesmo valor gravado em `webhook_deliveries.attemptNumber` e em `webhook_outbox.attemptCount` após o update. Nunca indexar pelo `attemptCount` lido antes do incremento. Progressão em tabela, não em fórmula: os intervalos da reunião não seguem uma razão constante (×5, ×6, ×4, ×6) e derivá-los de uma fórmula introduziria números que ninguém decidiu.
 
@@ -1188,6 +1188,8 @@ Progressão fechada em `[09:17] Diego:` e reafirmada em `[09:48] Larissa:`: **1 
 **Não existe falha permanente por status HTTP.** Um `410 Gone` ou `404` do cliente é tratado igual a um `503`. É consequência direta de a reunião ter definido o teto de tentativas como único critério (`[09:15] Diego:`); criar uma classe de falha por status seria decisão nova (exclusão declarada em 3.2).
 
 ### 8.4 Comportamento na falha definitiva
+
+O preço da progressão decidida: entre a falha da entrega inicial e a entrada na DLQ passam-se **~14 h 36 min** (8.2). Até lá a falha só existe no log e no histórico de entregas — um evento pode levar quase 15 horas para ser declarado perdido. Foi o custo aceito conscientemente em `[09:17] Marcos:` — "Se um cliente meu cair por 15 horas, ele já tá com problema sério dele. Acho aceitável."
 
 1. O evento **não some**: `webhook_dead_letter` guarda payload, motivo e timestamp (`[09:18] Diego:`).
 2. **Ninguém é avisado.** Sem e-mail (`[09:37] Larissa:`), sem alerta automático. O sinal é a métrica `webhook_dead_letter_total` e o log `webhook_event_dead_lettered` (seção 9).
@@ -1288,7 +1290,7 @@ Cliente HTTP
                                 └─ replay copia requestId da DLQ para a nova linha da outbox
 ```
 
-Com isso, `grep requestId=<valor>` devolve, numa única busca: a requisição `PATCH /orders/:id/status` original, o enfileiramento do evento, cada uma das até 5 tentativas de entrega ao longo de 2h36min (8.2), a eventual entrada na DLQ e o replay — mesmo tendo tudo isso acontecido em **dois processos diferentes** e com horas de distância.
+Com isso, `grep requestId=<valor>` devolve, numa única busca: a requisição `PATCH /orders/:id/status` original, o enfileiramento do evento, cada uma das até 5 tentativas de entrega ao longo de ~14h36min (8.2), a eventual entrada na DLQ e o replay — mesmo tendo tudo isso acontecido em **dois processos diferentes** e com horas de distância.
 
 **Limites dos spans:**
 
@@ -1374,7 +1376,7 @@ Dentro do `$transaction` (`:131`), a única linha nova entra **depois do `tx.ord
 ```ts
 WEBHOOK_POLL_INTERVAL_MS:   z.coerce.number().int().positive().default(2000),    // [09:09] Diego
 WEBHOOK_HTTP_TIMEOUT_MS:    z.coerce.number().int().positive().default(10000),   // [09:42] Diego
-WEBHOOK_MAX_RETRIES:        z.coerce.number().int().positive().default(4),       // 4 reentregas + envio inicial = 5 tentativas, ADR-003
+WEBHOOK_MAX_RETRIES:        z.coerce.number().int().positive().default(5),       // 5 tentativas após a falha da entrega inicial, ADR-003
 WEBHOOK_PAYLOAD_MAX_BYTES:  z.coerce.number().int().positive().default(65536),   // 64KB, [09:24] Larissa
 WEBHOOK_SECRET_GRACE_HOURS: z.coerce.number().int().positive().default(24),      // [09:21] Sofia
 WEBHOOK_WORKER_BATCH_SIZE:  z.coerce.number().int().positive(),                  // sem default: a reunião não deu número
@@ -1582,11 +1584,10 @@ Cada item é verificável por teste automatizado ou inspeção de código. Refer
 | **R-4** | **Segredo vazando em log.** | O `redact` atual não conhece `secret` (`src/shared/logger/index.ts:4-11`), e Diego relatou caso real desse vazamento do lado de um cliente (`[09:22] Diego:`) | Acrescentar os três caminhos ao `redactPaths` (9.2); serializar cadastro sempre com `select` explícito no repository (6.2); critério de aceitação 23. Isolar HMAC e geração de segredo em `webhook.signature.ts` para a revisão de `[09:46] Sofia:` |
 | **R-5** | **Grace period de rotação sem regra de assinatura definida.** | O [ADR-004](./adrs/ADR-004-hmac-sha256-secret-por-endpoint.md) deixou **(em aberto)** qual segredo assina durante as 24h. Implementar "assina com o novo" torna a janela inútil — o cliente que ainda não migrou passa a receber assinatura que não valida, exatamente o que o grace period existe para evitar | **Bloqueia o passo 4 do fluxo 5.2.2.** Levar as três opções à revisão de `[09:46] Sofia:` antes de codar o envio. O modelo de dados (`secret`, `previousSecret`, `previousSecretExpiresAt`) suporta qualquer das três sem migration adicional |
 | **R-6** | **`DELETE /webhooks/:id` apaga histórico de entregas e DLQ junto**, por `onDelete: Cascade`. | Cliente que quer só parar de receber pode remover o cadastro e perder a evidência que `GET /deliveries` (`[09:34] Marcos:`) existe para dar | Documentar no portal do desenvolvedor (`[09:40] Marcos:`) que a pausa é `PATCH { "active": false }` e a remoção é definitiva. Se virar problema recorrente, `DELETE` passa a ser remoção lógica — decisão nova, com ADR |
-| **R-7** | **A progressão de 5 intervalos do ADR-003 não é consumível por 5 tentativas.** O quinto intervalo (12h) fica inalcançável e a janela real é de 2h36min, não ~15h — abaixo das duas horas de manutenção planejada só por margem | O ADR-003 fixa simultaneamente o teto de 5 tentativas e cinco intervalos; os dois números não fecham (nota da seção 8.2) | Emenda ao ADR-003 antes do go-live — pendência rastreada em [RFC §6](./RFC.md), com responsáveis e gatilho. `WEBHOOK_MAX_RETRIES` é variável de ambiente para que a correção não exija deploy de código |
-| **R-8** | **`webhook_outbox` e `webhook_deliveries` crescem sem limite.** | Arquivamento foi declarado fora do escopo (`[09:08] Diego:`), e o snapshot duplica dado por linha ([ADR-007](./adrs/ADR-007-snapshot-do-payload-na-insercao.md)) — agora em três tabelas | Nenhuma mitigação dentro desta feature, por decisão. Acompanhar o tamanho das tabelas; o gatilho de reabertura registrado no [ADR-001](./adrs/ADR-001-outbox-no-mysql.md) é impacto em consulta, backup ou custo |
-| **R-9** | **Qualquer usuário autenticado cadastra webhook para qualquer `customerId` e recebe um segredo válido na resposta — e, por 6.6, também rotaciona o segredo de qualquer cadastro existente**, invalidando a integração em uso e ficando com o novo valor. Também pode redirecionar os eventos de outro cliente para uma URL própria | `customerId` vem do body e não do JWT (`[09:32] Larissa:`), e o CRUD não exige papel (`[09:37] Sofia:`) — vazamento entre clientes viabilizado por desenho, aceito nesta fase no [ADR-008](./adrs/ADR-008-controle-de-acesso-dos-endpoints.md) | Fora do escopo desta feature. O log de auditoria genérico (`userId` em `http_request`, `request-logger.middleware.ts:21`) permite reconstruir quem criou o quê. Endurecimento depende de vincular `customerId` ao token — reabertura prevista no ADR-008 |
-| **R-10** | **Cliente sem dedup processa evento duplicado.** | At-least-once é garantia explícita ([ADR-005](./adrs/ADR-005-at-least-once-com-x-event-id.md)); crash do worker entre enviar e marcar (5.2.3) produz duplicata real | `X-Event-Id` estável entre tentativas e no replay (critério 18). Documentação em destaque no portal (`[09:26] Marcos:`). `webhook_outbox_reclaimed_total` > 0 indica quando duplicatas foram provavelmente geradas |
-| **R-11** | **Cliente lento drena a vazão do worker único.** | Processamento é sequencial e cada envio pode levar até 10s; um cliente próximo do timeout atrasa a fila de todos | `webhook_delivery_duration_ms` por endpoint (9.1) identifica o responsável. Paralelismo e rate limiting foram adiados (`[09:13] Diego:`, `[09:39] Larissa:`); se o sintoma aparecer, é gatilho para reabrir o [ADR-002](./adrs/ADR-002-worker-separado-com-polling.md) |
+| **R-7** | **`webhook_outbox` e `webhook_deliveries` crescem sem limite.** | Arquivamento foi declarado fora do escopo (`[09:08] Diego:`), e o snapshot duplica dado por linha ([ADR-007](./adrs/ADR-007-snapshot-do-payload-na-insercao.md)) — agora em três tabelas | Nenhuma mitigação dentro desta feature, por decisão. Acompanhar o tamanho das tabelas; o gatilho de reabertura registrado no [ADR-001](./adrs/ADR-001-outbox-no-mysql.md) é impacto em consulta, backup ou custo |
+| **R-8** | **Qualquer usuário autenticado cadastra webhook para qualquer `customerId` e recebe um segredo válido na resposta — e, por 6.6, também rotaciona o segredo de qualquer cadastro existente**, invalidando a integração em uso e ficando com o novo valor. Também pode redirecionar os eventos de outro cliente para uma URL própria | `customerId` vem do body e não do JWT (`[09:32] Larissa:`), e o CRUD não exige papel (`[09:37] Sofia:`) — vazamento entre clientes viabilizado por desenho, aceito nesta fase no [ADR-008](./adrs/ADR-008-controle-de-acesso-dos-endpoints.md) | Fora do escopo desta feature. O log de auditoria genérico (`userId` em `http_request`, `request-logger.middleware.ts:21`) permite reconstruir quem criou o quê. Endurecimento depende de vincular `customerId` ao token — reabertura prevista no ADR-008 |
+| **R-9** | **Cliente sem dedup processa evento duplicado.** | At-least-once é garantia explícita ([ADR-005](./adrs/ADR-005-at-least-once-com-x-event-id.md)); crash do worker entre enviar e marcar (5.2.3) produz duplicata real | `X-Event-Id` estável entre tentativas e no replay (critério 18). Documentação em destaque no portal (`[09:26] Marcos:`). `webhook_outbox_reclaimed_total` > 0 indica quando duplicatas foram provavelmente geradas |
+| **R-10** | **Cliente lento drena a vazão do worker único.** | Processamento é sequencial e cada envio pode levar até 10s; um cliente próximo do timeout atrasa a fila de todos | `webhook_delivery_duration_ms` por endpoint (9.1) identifica o responsável. Paralelismo e rate limiting foram adiados (`[09:13] Diego:`, `[09:39] Larissa:`); se o sintoma aparecer, é gatilho para reabrir o [ADR-002](./adrs/ADR-002-worker-separado-com-polling.md) |
 
 ---
 

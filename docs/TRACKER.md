@@ -10,17 +10,17 @@ A coluna **Localização** é âncora de origem, não atribuição de autoria. Q
 
 | Métrica | Valor |
 | --- | --- |
-| Total de linhas no tracker | **630** |
-| docs/PRD.md | 86 |
-| docs/RFC.md | 95 |
-| docs/FDD.md | 259 |
-| docs/adrs/ (ADR-001 a ADR-008) | 190 |
-| Linhas com Fonte = TRANSCRICAO | 530 (**84,1%**) |
-| Linhas com Fonte = CODIGO | 100 (**15,9%**) |
+| Total de linhas no tracker | **624** |
+| docs/PRD.md | 85 |
+| docs/RFC.md | 94 |
+| docs/FDD.md | 256 |
+| docs/adrs/ (ADR-001 a ADR-008) | 189 |
+| Linhas com Fonte = TRANSCRICAO | 524 (**84,0%**) |
+| Linhas com Fonte = CODIGO | 100 (**16,0%**) |
 | Timestamps inválidos após validação | 0 |
 | Caminhos de arquivo inexistentes e não marcados "(a criar)" | 0 |
 
-**Alvos do pacote:** ≥80% de cobertura dos itens identificáveis, ≥70% de linhas com fonte TRANSCRICAO e ≥5 linhas com fonte CODIGO. Todos atendidos — 84,1% das linhas têm fonte TRANSCRICAO (alvo 70%) e 100 linhas têm fonte CODIGO (alvo 5).
+**Alvos do pacote:** ≥80% de cobertura dos itens identificáveis, ≥70% de linhas com fonte TRANSCRICAO e ≥5 linhas com fonte CODIGO. Todos atendidos — 84,0% das linhas têm fonte TRANSCRICAO (alvo 70%) e 100 linhas têm fonte CODIGO (alvo 5).
 
 **Validação executada:** os pares `[hh:mm] Nome:` distintos usados como localização foram conferidos um a um contra `TRANSCRICAO.md`; todos existem com aquele falante naquele minuto. Os **30 caminhos distintos** usados como Localização das 100 linhas com Fonte = CODIGO foram abertos: **os 30 existem no repositório**. Os 2 caminhos ainda inexistentes (`src/worker.ts` e `src/modules/webhooks/`) aparecem apenas em células de conteúdo, sempre marcados "(a criar)", nunca na coluna Localização.
 
@@ -96,7 +96,6 @@ A coluna **Localização** é âncora de origem, não atribuição de autoria. Q
 | PRD-RISCO-06 | docs/PRD.md | Risco | Rajada de notificacoes sobre um mesmo cliente, ancorada na hipotese de 50 pedidos mudando de status em um minuto | TRANSCRICAO | [09:38] Diego: |
 | PRD-RISCO-07 | docs/PRD.md | Risco | Configuracao de um cliente alterada por usuario de outro contexto, ja que o cliente dono vem da requisicao e o endurecimento de papeis foi adiado | TRANSCRICAO | [09:32] Larissa: |
 | PRD-RISCO-08 | docs/PRD.md | Risco | Analise do PRD e nao conclusao da reuniao: nao existe vinculo entre usuario e cliente no modelo de dados, entao verificar posse e uma pergunta que o sistema nao tem como responder hoje | CODIGO | prisma/schema.prisma |
-| PRD-QA-01 | docs/PRD.md | Questao em Aberto | Divergencia entre o teto de 5 tentativas e a progressao de intervalos: apenas quatro esperas sao consumidas, somando 2h36min, e o intervalo de 12h fica inalcancavel | TRANSCRICAO | [09:17] Diego: |
 | PRD-QA-02 | docs/PRD.md | Questao em Aberto | Percentual de cobertura do alvo de 10 segundos: a reuniao fixou o limiar mas nao fixou percentual algum, e os 95 por cento sao proposta do PRD pendente de ratificacao | TRANSCRICAO | [09:02] Marcos: |
 | PRD-QA-03 | docs/PRD.md | Questao em Aberto | Janela de adocao dos tres clientes: a reuniao nao fixou prazo e os 60 dias apos a disponibilizacao sao proposta do PRD a ratificar | TRANSCRICAO | [09:47] Marcos: |
 | PRD-QA-04 | docs/PRD.md | Questao em Aberto | Limiar de aprovacao de ate 1 por cento de eventos exigindo reprocessamento manual por mes e proposta do PRD, a reuniao nao fixou nenhum | TRANSCRICAO | [09:37] Larissa: |
@@ -113,7 +112,7 @@ A coluna **Localização** é âncora de origem, não atribuição de autoria. Q
 | PRD-METRICA-01 | docs/PRD.md | Metrica | OBJ-1 notificar em tempo real: intervalo entre a mudanca de status e a confirmacao de recebimento, com limiar de 10 segundos fixado na reuniao | TRANSCRICAO | [09:02] Marcos: |
 | PRD-METRICA-02 | docs/PRD.md | Metrica | OBJ-2 eliminar a consulta repetitiva: 3 de 3 clientes que pediram formalmente a feature com configuracao ativa recebendo eventos | TRANSCRICAO | [09:00] Marcos: |
 | PRD-METRICA-03 | docs/PRD.md | Metrica | OBJ-3 nao perder mudanca de status: meta zero mudancas que deveriam gerar evento e nao geraram | TRANSCRICAO | [09:40] Bruno: |
-| PRD-METRICA-04 | docs/PRD.md | Metrica | OBJ-4 sobreviver a indisponibilidade do cliente: fracao dos eventos falhados que precisou de reprocessamento manual, com a janela de retentativas em disputa | TRANSCRICAO | [09:17] Diego: |
+| PRD-METRICA-04 | docs/PRD.md | Metrica | OBJ-4 sobreviver a indisponibilidade do cliente: fracao dos eventos falhados que precisou de reprocessamento manual dentro da janela de retentativas de quase 15 horas | TRANSCRICAO | [09:17] Diego: |
 | PRD-METRICA-05 | docs/PRD.md | Metrica | OBJ-5 entregar dentro do prazo comercial: data de disponibilizacao em producao contra a data de fim de novembro acordada com a Atlas | TRANSCRICAO | [09:45] Marcos: |
 | PRD-METRICA-06 | docs/PRD.md | Metrica | Numero absoluto de eventos que esgotaram tentativas por mes e o insumo condicionado para reabrir o alerta automatico depois de medir o impacto | TRANSCRICAO | [09:37] Larissa: |
 
@@ -202,7 +201,6 @@ A coluna **Localização** é âncora de origem, não atribuição de autoria. Q
 | RFC-RISCO-01 | docs/RFC.md | Risco | Risco numero um: defeito no produtor de evento vira defeito na operacao de pedidos, porque fora da transacao perde a garantia toda | TRANSCRICAO | [09:41] Diego: |
 | RFC-RISCO-02 | docs/RFC.md | Risco | Segundo processo em producao: se o worker morre nada quebra de imediato, a outbox acumula em silencio e nenhum alerta foi decidido | TRANSCRICAO | [09:11] Diego: |
 | RFC-RISCO-03 | docs/RFC.md | Risco | Extensao analitica do RFC, nao conclusao da reuniao: no limite que o desenho admite uma entrega bem-sucedida ultrapassa o alvo sem que nada tenha falhado; aritmetica no FDD 8.1.1 | TRANSCRICAO | [09:42] Diego: |
-| RFC-RISCO-04 | docs/RFC.md | Risco | Questao em aberto do RFC: a transcricao afirma 5 tentativas e cinco intervalos ao mesmo tempo, e nenhuma fala desempata; janela vale 2h36min ate a emenda ao ADR-003 | TRANSCRICAO | [09:17] Diego: |
 | RFC-RISCO-05 | docs/RFC.md | Risco | Secret recuperavel por cadastro porque e gerada pela plataforma e devolvida na criacao do webhook | TRANSCRICAO | [09:31] Marcos: |
 | RFC-RISCO-06 | docs/RFC.md | Risco | Extensao analitica do RFC: nao ha vinculo entre User e Customer no schema, entao a posse do customer_id nao pode ser verificada | CODIGO | prisma/schema.prisma |
 | RFC-RISCO-07 | docs/RFC.md | Risco | Extensao analitica do RFC: fechar o ponto exige alteracao de schema antes de qualquer regra de papel, o que tira o endurecimento do escopo de middleware | CODIGO | prisma/schema.prisma |
@@ -428,22 +426,19 @@ A coluna **Localização** é âncora de origem, não atribuição de autoria. Q
 | FDD-RISCO-54 | docs/FDD.md | Risco | R-4: segredo vazando em log, com caso real relatado de cliente que expos secret em log de aplicacao | TRANSCRICAO | [09:22] Diego: |
 | FDD-RISCO-55 | docs/FDD.md | Risco | R-5: grace period de rotacao sem regra de assinatura definida bloqueia o passo de assinatura do worker | TRANSCRICAO | [09:21] Sofia: |
 | FDD-RISCO-56 | docs/FDD.md | Risco | R-6: DELETE /webhooks/:id apaga historico de entregas e DLQ junto, por onDelete Cascade - analise do FDD, nao discutida na reuniao | TRANSCRICAO | [09:34] Marcos: |
-| FDD-RISCO-57 | docs/FDD.md | Risco | R-7: divergencia aritmetica apontada pelo FDD entre 5 tentativas e cinco intervalos; janela real de 2h36min | TRANSCRICAO | [09:17] Diego: |
-| FDD-RISCO-58 | docs/FDD.md | Risco | R-8: webhook_outbox e webhook_deliveries crescem sem limite porque arquivamento ficou fora do escopo | TRANSCRICAO | [09:08] Diego: |
-| FDD-RISCO-59 | docs/FDD.md | Risco | R-9: qualquer usuario autenticado cadastra e rotaciona webhook de qualquer customerId, viabilizando vazamento entre clientes | TRANSCRICAO | [09:37] Sofia: |
-| FDD-RISCO-60 | docs/FDD.md | Risco | R-10: cliente sem dedup processa evento duplicado, consequencia assumida da garantia at-least-once | TRANSCRICAO | [09:24] Diego: |
-| FDD-RISCO-61 | docs/FDD.md | Risco | R-11: cliente lento drena a vazao do worker unico, porque o processamento e sequencial e cada envio pode levar 10s | TRANSCRICAO | [09:12] Diego: |
+| FDD-RISCO-58 | docs/FDD.md | Risco | R-7: webhook_outbox e webhook_deliveries crescem sem limite porque arquivamento ficou fora do escopo | TRANSCRICAO | [09:08] Diego: |
+| FDD-RISCO-59 | docs/FDD.md | Risco | R-8: qualquer usuario autenticado cadastra e rotaciona webhook de qualquer customerId, viabilizando vazamento entre clientes | TRANSCRICAO | [09:37] Sofia: |
+| FDD-RISCO-60 | docs/FDD.md | Risco | R-9: cliente sem dedup processa evento duplicado, consequencia assumida da garantia at-least-once | TRANSCRICAO | [09:24] Diego: |
+| FDD-RISCO-61 | docs/FDD.md | Risco | R-10: cliente lento drena a vazao do worker unico, porque o processamento e sequencial e cada envio pode levar 10s | TRANSCRICAO | [09:12] Diego: |
 | FDD-RISCO-62 | docs/FDD.md | Risco | 8.1.1: analise do FDD, nao conclusao da reuniao - o timeout de 10s sozinho iguala o alvo de 10s, entao um destino que responde em 9s entrega em ~11s sem que nada tenha falhado; reduzir o timeout e trade-off, nao ajuste | TRANSCRICAO | [09:42] Diego: |
 | FDD-QA-01 | docs/FDD.md | Questao em Aberto | Qual segredo assina durante o grace period de 24h: o novo, o antigo ou ambos - bloqueia o passo de assinatura e vai para a revisao de seguranca | TRANSCRICAO | [09:21] Sofia: |
 | FDD-QA-02 | docs/FDD.md | Questao em Aberto | Tamanho e codificacao do segredo gerado ficam para a revisao de seguranca | TRANSCRICAO | [09:46] Sofia: |
-| FDD-QA-03 | docs/FDD.md | Questao em Aberto | Divergencia aritmetica: 5 chamadas consomem 4 esperas e nao fecham as quase 15 horas prometidas | TRANSCRICAO | [09:17] Diego: |
 | FDD-QA-04 | docs/FDD.md | Questao em Aberto | Rate limiting de saida fica como ponto a observar e decidir depois, e e mitigacao pendente do risco do worker unico | TRANSCRICAO | [09:39] Diego: |
 | FDD-QA-05 | docs/FDD.md | Questao em Aberto | Tamanho do lote do polling ficou como batch pequeno, sem numero; vira env obrigatoria sem default | TRANSCRICAO | [09:08] Diego: |
 | FDD-QA-06 | docs/FDD.md | Questao em Aberto | Autorizacao do endpoint de rotacao nao foi discutida; candidato a exigir ADMIN | TRANSCRICAO | [09:46] Sofia: |
 | FDD-QA-07 | docs/FDD.md | Questao em Aberto | Derrubar a mudanca de status por payload acima de 64KB e inferencia do FDD e precisa de ratificacao | TRANSCRICAO | [09:24] Larissa: |
 | FDD-QA-08 | docs/FDD.md | Questao em Aberto | Incluir o timestamp no escopo assinado - opcao a levar a revisao de seguranca | TRANSCRICAO | [09:46] Sofia: |
 | FDD-QA-50 | docs/FDD.md | Questao em Aberto | WEBHOOK_SECRET_REQUIRED so voltaria se a rotacao passar a aceitar segredo informado pelo cliente, hipotese para a revisao de seguranca | TRANSCRICAO | [09:46] Sofia: |
-| FDD-QA-52 | docs/FDD.md | Questao em Aberto | Emenda ao ADR-003 antes do go-live para reconciliar o teto de tentativas com os cinco intervalos de backoff | TRANSCRICAO | [09:17] Diego: |
 | FDD-FE-01 | docs/FDD.md | Fora de Escopo | Rate limiting de saida por cliente | TRANSCRICAO | [09:39] Larissa: |
 | FDD-FE-02 | docs/FDD.md | Fora de Escopo | Arquivamento ou expurgo de linhas ja entregues da outbox | TRANSCRICAO | [09:08] Diego: |
 | FDD-FE-03 | docs/FDD.md | Fora de Escopo | Recepcao de webhooks inbound; os clientes querem receber, nao mandar | TRANSCRICAO | [09:02] Marcos: |
@@ -460,7 +455,7 @@ A coluna **Localização** é âncora de origem, não atribuição de autoria. Q
 | FDD-FE-14 | docs/FDD.md | Fora de Escopo | Envio de items no payload; o cliente busca detalhes em GET /orders/:id | TRANSCRICAO | [09:43] Diego: |
 | FDD-FE-50 | docs/FDD.md | Fora de Escopo | WEBHOOK_SECRET_REQUIRED descartado da matriz: sem caminho de ocorrencia porque a plataforma gera o segredo | TRANSCRICAO | [09:31] Marcos: |
 | FDD-METRICA-01 | docs/FDD.md | Metrica | Orcamento de latencia ponta a ponta de 10 segundos, definido pelos clientes como tempo real | TRANSCRICAO | [09:02] Marcos: |
-| FDD-METRICA-02 | docs/FDD.md | Metrica | Janela de quase 15 horas entre a primeira falha e a ultima tentativa, conforme a progressao proposta | TRANSCRICAO | [09:17] Diego: |
+| FDD-METRICA-02 | docs/FDD.md | Metrica | Janela de quase 15 horas entre a primeira falha e a ultima tentativa, conforme a progressao decidida | TRANSCRICAO | [09:17] Diego: |
 | FDD-METRICA-03 | docs/FDD.md | Metrica | Os ultimos ~100 deliveries correspondem ao pageSize maximo de 100 ja praticado no projeto | CODIGO | src/modules/orders/order.schemas.ts |
 | FDD-METRICA-50 | docs/FDD.md | Metrica | Metrica proposta pelo FDD: webhook_event_lag_ms (histograma) mede createdAt ate a primeira chamada HTTP e valida o orcamento de 10 segundos | TRANSCRICAO | [09:02] Marcos: |
 | FDD-METRICA-51 | docs/FDD.md | Metrica | Metrica proposta pelo FDD: webhook_outbox_pending_total (gauge) emitida uma vez por ciclo de polling para mostrar se a fila esta drenando | TRANSCRICAO | [09:09] Diego: |
@@ -576,8 +571,7 @@ A coluna **Localização** é âncora de origem, não atribuição de autoria. Q
 | ADR-003-CONS-04 | docs/adrs/ADR-003-retry-com-backoff-e-dlq.md | Trade-off | Cada evento de cliente instavel volta a fila de trabalho do worker unico cinco vezes antes de sair de cena | TRANSCRICAO | [09:15] Diego: |
 | ADR-003-CONS-05 | docs/adrs/ADR-003-retry-com-backoff-e-dlq.md | Trade-off | O replay reenvia o snapshot original: evento reprocessado dias depois entrega o estado do pedido de quando o status mudou | TRANSCRICAO | [09:52] Larissa: |
 | ADR-003-CONS-02 | docs/adrs/ADR-003-retry-com-backoff-e-dlq.md | Risco | Ninguem e avisado automaticamente quando um webhook comeca a falhar; o unico aviso e o cliente consultar o historico | TRANSCRICAO | [09:37] Larissa: |
-| ADR-003-RISCO-01 | docs/adrs/ADR-003-retry-com-backoff-e-dlq.md | Risco | Produto aceitou o custo acreditando numa janela de quase 15 horas, numero que a emenda pendente do ADR precisa ratificar | TRANSCRICAO | [09:17] Marcos: |
-| ADR-003-QA-01 | docs/adrs/ADR-003-retry-com-backoff-e-dlq.md | Questao em Aberto | Divergencia aritmetica apontada na analise do ADR: os cinco intervalos rendem 2h36min efetivos e o de 12h fica inalcancavel | TRANSCRICAO | [09:17] Diego: |
+| ADR-003-RISCO-01 | docs/adrs/ADR-003-retry-com-backoff-e-dlq.md | Risco | Produto aceitou o custo de um evento levar quase 15 horas entre a primeira falha e a ultima tentativa ate ser declarado perdido e ir para a DLQ | TRANSCRICAO | [09:17] Marcos: |
 | ADR-003-QA-02 | docs/adrs/ADR-003-retry-com-backoff-e-dlq.md | Questao em Aberto | Intervalos sao fixos e iguais para todos os clientes; diferenciacao de politica por cliente nao chegou a ser discutida | TRANSCRICAO | [09:17] Diego: |
 | ADR-003-QA-03 | docs/adrs/ADR-003-retry-com-backoff-e-dlq.md | Questao em Aberto | Nao ha reprocessamento automatico nem em lote a partir da DLQ; o replay e um evento por chamada | TRANSCRICAO | [09:18] Diego: |
 | ADR-003-FE-01 | docs/adrs/ADR-003-retry-com-backoff-e-dlq.md | Fora de Escopo | Alerta por e-mail ao cliente apos falhas consecutivas pedido pelo PM e adiado para a proxima fase | TRANSCRICAO | [09:37] Marcos: |

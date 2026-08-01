@@ -47,7 +47,7 @@ Registro honesto: a alternativa não teve defensor após a resposta de Diego. De
 
 **Positivas**
 
-- Podemos retentar sem medo. A política de retry (5 tentativas, backoff 1m/5m/30m/2h/12h, janela efetiva de 2h36min — ver a divergência aritmética registrada no [ADR-003](./ADR-003-retry-com-backoff-e-dlq.md)) só é segura porque duplicidade é comportamento previsto no contrato, não incidente.
+- Podemos retentar sem medo. A política de retry (5 tentativas, backoff 1m/5m/30m/2h/12h, janela de ~14h36min entre a primeira falha e a última tentativa — ver [ADR-003](./ADR-003-retry-com-backoff-e-dlq.md)) só é segura porque duplicidade é comportamento previsto no contrato, não incidente.
 - Zero estado de deduplicação do nosso lado: nenhuma tabela de IDs processados, nenhuma janela de retenção, nenhum lock entre worker e cliente.
 - O contrato é o mesmo de Stripe e GitHub (`[09:25] Diego:`), o que dá um precedente conhecido para explicar o comportamento no portal do desenvolvedor em vez de justificar um formato próprio.
 - O esforço do nosso lado se resume a gerar e propagar um UUID que já existe na linha da outbox: nenhuma tabela de dedup, nenhum job de expiração e nenhum protocolo novo entram nas três sprints estimadas (`[09:46] Larissa:`, `[09:47] Larissa:`).

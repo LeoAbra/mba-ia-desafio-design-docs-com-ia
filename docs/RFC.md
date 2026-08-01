@@ -109,20 +109,6 @@ Todas descartadas na reunião. A análise completa mora no ADR indicado; aqui fi
 
 ## 6. Questões em aberto
 
-- **Quantas tentativas de entrega, afinal — e que janela isso compra.** Única questão que **bloqueia
-  o go-live**, e única nascida de contradição *dentro* da reunião, não de omissão dela:
-  `[09:17] Larissa:` e `[09:48] Larissa:` fecham "5 tentativas" **e** cinco intervalos, mas cinco
-  chamadas consomem quatro esperas — e as "quase 15 horas" que Diego anunciou e Marcos aceitou
-  (`[09:17] Diego:`) só se realizam se os cinco forem percorridos. **Nenhuma fala desempata, e o
-  pacote não escolhe por conta própria.** As duas saídas estão dimensionadas: cinco tentativas →
-  janela de **2h36min**, contra as 2h de manutenção planejada de `[09:16] Diego:`; cinco intervalos
-  percorridos → **~14h36min**, que é o que a reunião acreditou aprovar. Até a escolha sair vale
-  2h36min em todo o pacote — o que a Decisão do ADR-003 literalmente implementa. **Responsáveis:**
-  Diego e Larissa. **Gatilho:** a revisão técnica de `[09:50] Larissa:`; o resultado vira emenda ao
-  ADR-003 e se propaga a [PRD-RNF-04/05](./PRD.md), [PRD OBJ-4](./PRD.md),
-  [FDD §13 R-7](./FDD.md) e ao default de `WEBHOOK_MAX_RETRIES`. — aritmética em
-  [FDD §8.2](./FDD.md) · [ADR-003](./adrs/ADR-003-retry-com-backoff-e-dlq.md)
-
 - **Rate limiting de saída.** Cliente com muitos pedidos mudando de status recebe uma rajada de
   chamadas. Aberto porque sem dado de produção qualquer limite seria arbitrário, e limitar saída
   conflita com o alvo de latência. **Gatilho:** primeira reclamação formal sobre volume, ou rajada
@@ -133,7 +119,7 @@ Todas descartadas na reunião. A análise completa mora no ADR indicado; aqui fi
   regra de papel**: sem vínculo usuário↔cliente em `prisma/schema.prisma`, a verificação de posse é
   uma consulta que o modelo não permite fazer, e fechar o ponto exige alteração de schema antes de
   qualquer middleware. Causa raiz e exposição concreta em [PRD R-7](./PRD.md) e
-  [FDD §13 R-9](./FDD.md). **Gatilho:** primeiro cliente com usuários próprios, ou incidente — mas a
+  [FDD §13 R-8](./FDD.md). **Gatilho:** primeiro cliente com usuários próprios, ou incidente — mas a
   exposição já existe com o quadro de usuários internos atual. — `[09:37] Sofia:` ·
   [ADR-008](./adrs/ADR-008-controle-de-acesso-dos-endpoints.md)
 
@@ -179,9 +165,11 @@ Um **segundo processo em produção**, com deploy, supervisão e desligamento gr
 nada quebra de imediato: a outbox acumula em silêncio e a falha só aparece como notificação que não
 chegou — nenhum alerta foi decidido na reunião ([FDD §8.5](./FDD.md)). A DLQ é trabalho humano por
 desenho: sem alerta automático (`[09:37] Larissa:`), alguém precisa olhar, e o replay é manual.
-**Quanto tempo um evento leva até ser declarado perdido depende de uma divergência ainda aberta**
-(seção 6). Some-se o polling perpétuo e o segredo recuperável por cadastro — daí a revisão de
-segurança ser pré-condição de deploy (seção 1).
+E o relógio é longo: com o backoff `1m/5m/30m/2h/12h` e as cinco tentativas de `[09:17] Larissa:`,
+**um evento pode levar ~14h36min — "quase 15 horas" (`[09:17] Diego:`) — entre a primeira falha e a
+última tentativa antes de ser declarado perdido e ir para a DLQ**. É o preço aceito na reunião
+(`[09:17] Marcos:`), não um efeito colateral. Some-se o polling perpétuo e o segredo recuperável por
+cadastro — daí a revisão de segurança ser pré-condição de deploy (seção 1).
 
 ### Risco arquitetural: o orçamento de latência não fecha no limite
 
@@ -219,7 +207,7 @@ seção 6. Índice completo em [`docs/adrs/README.md`](./adrs/README.md).
 
 **Documentos irmãos:** [`FDD.md`](./FDD.md) — contratos, modelo de dados e fluxos.
 [`PRD.md`](./PRD.md) — por que a feature existe e para quem. [`TRACKER.md`](./TRACKER.md) —
-rastreabilidade item a item: 630 linhas ligando cada afirmação a um `[hh:mm] Nome:` ou a um caminho
+rastreabilidade item a item: 624 linhas ligando cada afirmação a um `[hh:mm] Nome:` ou a um caminho
 de arquivo.
 
 **Fora de escopo desta fase**, para não ser confundido com requisito: alerta por e-mail, painel

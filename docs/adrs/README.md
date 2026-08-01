@@ -48,11 +48,9 @@ Decisores e Contexto técnico, seguido de **Contexto**, **Decisão**, **Alternat
   ordenação global.
 - **[ADR-003](./ADR-003-retry-com-backoff-e-dlq.md) — Retry com backoff e DLQ.** Cinco tentativas
   espaçadas em 1m/5m/30m/2h/12h e, esgotadas, o evento vai para `webhook_dead_letter` com payload,
-  motivo e timestamp; replay é manual via endpoint admin. Preço: um evento leva **2h36min** para ser
-  declarado perdido e a DLQ exige operação humana. **Divergência aritmética registrada no próprio
-  ADR, com emenda pendente:** cinco chamadas consomem quatro esperas, então o intervalo de 12h é
-  inalcançável e as "quase 15 horas" da reunião não se realizam. A pendência é rastreada em
-  [RFC §6](../RFC.md), com responsáveis e gatilho.
+  motivo e timestamp; replay é manual via endpoint admin. Preço: um evento pode levar **~14h36min**
+  — as "quase 15 horas" citadas na reunião, contadas entre a primeira falha e a última tentativa —
+  até ser declarado perdido e ir para a DLQ, que ainda exige operação humana.
 - **[ADR-004](./ADR-004-hmac-sha256-secret-por-endpoint.md) — HMAC-SHA256 com segredo por
   endpoint.** Assinamos o corpo e enviamos em `X-Signature`; cada endpoint cadastrado tem segredo
   próprio, rotacionável pela API, com o segredo antigo válido em paralelo por 24 horas. Preço:

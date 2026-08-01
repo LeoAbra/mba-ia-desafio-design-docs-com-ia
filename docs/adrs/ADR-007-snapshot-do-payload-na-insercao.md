@@ -9,7 +9,7 @@
 
 O evento de webhook nasce dentro da mesma transação que muda o status do pedido ([ADR-001](./ADR-001-outbox-no-mysql.md)). Isso deixa uma pergunta em aberto sobre o que exatamente essa linha da outbox carrega, e ela não é cosmética: define o que o worker precisa saber na hora de entregar.
 
-A janela entre o registro do evento e a entrega não é curta. O retry vai até `1m/5m/30m/2h/12h` ([ADR-003](./ADR-003-retry-com-backoff-e-dlq.md)), então a última tentativa de um evento acontece **2h36min** depois do fato que o originou — e mais ainda se a emenda pendente do ADR-003 elevar o teto de tentativas. Nesse intervalo o pedido muda: o `PATCH /orders/:id/status` (`src/modules/orders/order.routes.ts:19`) permite novas transições a qualquer momento e cada uma delas grava um novo registro em `order_status_history`. Um evento que fosse remontado no instante do envio leria a order como ela está agora, não como estava quando o status mudou.
+A janela entre o registro do evento e a entrega não é curta. O retry vai até `1m/5m/30m/2h/12h` ([ADR-003](./ADR-003-retry-com-backoff-e-dlq.md)), então a última tentativa de um evento acontece **~14h36min** depois do fato que o originou. Nesse intervalo o pedido muda: o `PATCH /orders/:id/status` (`src/modules/orders/order.routes.ts:19`) permite novas transições a qualquer momento e cada uma delas grava um novo registro em `order_status_history`. Um evento que fosse remontado no instante do envio leria a order como ela está agora, não como estava quando o status mudou.
 
 Bruno colocou o dilema em uma frase, [09:51]: o evento guarda o payload renderizado, ou guarda só `order_id` e renderiza na hora do envio?
 
@@ -37,7 +37,7 @@ Levantada por Diego em [09:34] como pergunta aberta ("Filtra na inserção do ou
 
 **Positivas**
 
-- O que o cliente recebe corresponde ao estado do pedido no instante da transição, mesmo quando a entrega só acontece na quinta tentativa, 2h36min depois (progressão de [09:17] Diego, com a ressalva aritmética do [ADR-003](./ADR-003-retry-com-backoff-e-dlq.md)).
+- O que o cliente recebe corresponde ao estado do pedido no instante da transição, mesmo quando a entrega só acontece na quinta tentativa, ~14h36min depois (progressão de [09:17] Diego, detalhada no [ADR-003](./ADR-003-retry-com-backoff-e-dlq.md)).
 - O worker não precisa ler `orders` a cada tentativa de envio: uma leitura da outbox basta para montar o request completo. Menos consultas ao MySQL por retry, no mesmo banco que já sustenta a API.
 - O payload persistido é literalmente o que foi enviado, o que torna consistentes por construção os dois artefatos de auditoria já decididos: a `webhook_dead_letter` com a payload e o motivo da falha ([09:18] Diego) e o histórico `GET /webhooks/:id/deliveries` com payload e response ([09:34] Marcos).
 - Filtrar na origem mantém a outbox proporcional ao que tem destinatário, não ao volume total de mudanças de status da plataforma.
